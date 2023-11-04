@@ -17,30 +17,30 @@ async def menu_command(message: types.Message):
     await sqlite_db.open_menu(message)
     
 # @dp.message_handler()
-# async def menu(message: types.Message):
+async def menu(message: types.Message):
 
-#     try:
-#         if {i.lower().translate(str.maketrans('', '', string.punctuation )) for i in message.text.split(' ')}\
-#                 .intersection(set(json.load(open('cenz.json')))) != set():
-#                 await message.reply('Wrong')
-#                 await message.delete()
-#         match message.text:
-#             case "О нас":
-#                 await message.reply('AAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-#             case "Помошь":
-#                 await message.reply('BBBBBBBBBBBBBBBBBBBBBBBBBBBBB', reply_markup=buttons.help)
-#             case _:
-#                 pass
-#     except Exception as e:
-#         print(e)
+    try:
+        if {i.lower().translate(str.maketrans('', '', string.punctuation )) for i in message.text.split(' ')}\
+                .intersection(set(json.load(open('cenz.json')))) != set():
+                await message.reply('Wrong')
+                await message.delete()
+        match message.text:
+            case "О нас":
+                await message.reply('AAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+            case "Помошь":
+                await message.reply('BBBBBBBBBBBBBBBBBBBBBBBBBBBBB', reply_markup=buttons.help)
+            case _:
+                pass
+    except Exception as e:
+        print(e)
 
 # @dp.message_handler()
-# async def help_menu(call: types.CallbackQuery):
-#     match call.data:
-#         case "helpfinance":
-#             await call.message.answer("FFFFIIIIINNNAAANNNSSEEE")
-#         case "helpfisical":
-#             await call.message.answer('FFFIIIISSSIIIICCCAAAALLL')
+async def help_menu(call: types.CallbackQuery):
+    match call.data:
+        case "helpfinance":
+            await call.message.answer("FFFFIIIIINNNAAANNNSSEEE")
+        case "helpfisical":
+            await call.message.answer('FFFIIIISSSIIIICCCAAAALLL')
 
 # @dp.message_handler(commands=['start'])
 # async def process_hello(message: types.Message):
@@ -85,8 +85,8 @@ async def menu_command(message: types.Message):
 
 
 # @dp.message_handler(commands=['help'])
-# async def process_reply(message: types.Message):
-#     await bot.send_message(message.from_user.id, 'Can i help you ?')
+async def process_reply(message: types.Message):
+    await bot.send_message(message.from_user.id, 'Can i help you ?')
 
 
 
@@ -107,5 +107,5 @@ def register_handlers_client(dp : Dispatcher):
     # բոլոր ֆունկցիաները գրանցում ենք այստեղ (register_message_handler ---> ֆունկցիաները մի տեղ հավաքելու համար ֆունկցիա)
     dp.register_message_handler(process_hello, commands=['start', 'help'])
     dp.register_message_handler(menu_command, commands=['menu'])
-    # dp.register_message_handler(menu)
-    # dp.register_message_handler(help_menu)
+    dp.register_message_handler(menu)
+    dp.register_message_handler(help_menu)
