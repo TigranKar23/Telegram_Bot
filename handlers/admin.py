@@ -5,6 +5,12 @@ from aiogram import types, Dispatcher
 from aiogram.dispatcher.filters import Text
 from data_base import sqlite_db
 from keyboards import admin_kb
+import openai
+#im@
+# openai.api_key = "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"
+
+#hovoin@
+openai.api_key = "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"
 
 ID = None
 
@@ -16,6 +22,9 @@ class FSMAdmin(StatesGroup):
 
 class DeleteState(StatesGroup):
     name = State()
+
+class SearchState(StatesGroup):
+    search_data = State()
 
 # @dp.message_handler(commands="Download", is_chat_admin=True)
 # async def make_changes_comand(message:types.Message):
@@ -39,6 +48,49 @@ async def get_product_id_to_delete(message: types.Message, state:FSMContext):
     sqlite_db.sql_delete_product(deleted_name)
     await message.reply(f"Product with name <<{deleted_name}>> has been deleted.")
     await state.finish()
+    
+#-----------------------------------------------------------
+
+async def beautify_text(text):
+    # Capitalize the first letter
+    text = text[0].upper() + text[1:]
+
+    # Ensure the text ends with appropriate punctuation
+    if not any(text.endswith(punct) for punct in ['.', '!', '?']):
+        text += '.'
+
+    return text
+
+    # @dp.message_handler(commands="Delete", is_chat_admin=True)
+async def start_search(message: types.Message):
+    await message.reply("How can I assist you today?")
+    await SearchState.search_data.set()
+
+
+# @dp.message_handler(lambda message: message.text.isdigit(), state=None)
+async def search_request(message: types.Message, state:FSMContext):
+    async with state.proxy() as date:
+        date['search_data']=message.text
+    data = await state.get_data()
+    search_data = data.get("search_data")
+    # -------------------------------------------------------
+    
+    # response = openai.Completion.create(engine="davinci", prompt=search_data, max_tokens=150)
+
+    try:
+
+        response = openai.Completion.create(engine="davinci", prompt=search_data, max_tokens=150)
+        text = beautify_text(response.choices[0].text.strip())
+        await message.reply(text)
+    except openai.error.RateLimitError:
+        await message.reply("Sorry, I've exceeded my API rate limit. Please try again later.")
+
+    # -------------------------------------------------------
+    await message.reply(response.choices[0].text.strip())
+    # await message.reply(search_data)
+    await state.finish()
+
+#-----------------------------------------------------------
 
 # @dp.message_handler(commands="Download", state=None)
 async def cm_start(message:types.Message):
@@ -90,12 +142,19 @@ async def cancel_handler(message: types.Message, state: FSMContext):
         return
     await state.finish()
     await message.reply('OK')
-    
+
+
 
 def register_handlers_client(dp : Dispatcher):
 
+    #delete product
     dp.register_message_handler(delete_product, commands=['Delete'])
     dp.register_message_handler(get_product_id_to_delete, state=DeleteState.name)
+    
+
+    #search
+    dp.register_message_handler(start_search, commands=['search'])
+    dp.register_message_handler(search_request, state=SearchState.search_data)
 
     dp.register_message_handler(cancel_handler, commands=['Cancel'], state='*')
     dp.register_message_handler(cancel_handler, Text(equals='Cancel', ignore_case=True), state='*')
@@ -106,5 +165,4 @@ def register_handlers_client(dp : Dispatcher):
     dp.register_message_handler(load_name, state=FSMAdmin.name)
     dp.register_message_handler(load_description, state=FSMAdmin.description)
     dp.register_message_handler(load_price, state=FSMAdmin.price)
-    
     

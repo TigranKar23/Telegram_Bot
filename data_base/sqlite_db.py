@@ -17,7 +17,12 @@ async def sql_add_command(state):
 
 async def open_menu(message):
     for ret in cur.execute('SELECT * FROM menu').fetchall():
-        await bot.send_photo(message.from_user.id, ret[0],f'{ret[1]}\nОписание: {ret[2]}\nЦена: {ret[3]}')
+      
+
+        try:
+            await bot.send_photo(message.from_user.id, ret[0],f'{ret[1]}\nОписание: {ret[2]}\nЦена: {ret[3]}')
+        except Exception as e:
+            print(f"Ошибка при отправке фотографии для {ret[1]}: {e}")
 
 def sql_delete_product(name):
     conn = sq.connect('test1.db')
