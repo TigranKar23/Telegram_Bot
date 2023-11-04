@@ -18,3 +18,10 @@ async def sql_add_command(state):
 async def open_menu(message):
     for ret in cur.execute('SELECT * FROM menu').fetchall():
         await bot.send_photo(message.from_user.id, ret[0],f'{ret[1]}\nОписание: {ret[2]}\nЦена: {ret[3]}')
+
+def sql_delete_product(name):
+    conn = sq.connect('test1.db')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM menu WHERE name=?", (name,))
+    conn.commit()
+    conn.close()

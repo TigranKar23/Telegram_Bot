@@ -14,12 +14,31 @@ class FSMAdmin(StatesGroup):
     description = State()
     price = State()
 
+class DeleteState(StatesGroup):
+    name = State()
+
 # @dp.message_handler(commands="Download", is_chat_admin=True)
 # async def make_changes_comand(message:types.Message):
 #     global ID
 #     ID=message.from_user.id
 #     await bot.send_message(message.from_user.id,'You are Admin')
 #     await message.delete()
+
+# @dp.message_handler(commands="Delete", is_chat_admin=True)
+async def delete_product(message: types.Message):
+    await message.reply("Please provide the product ID you want to delete:")
+    await DeleteState.name.set()
+
+
+# @dp.message_handler(lambda message: message.text.isdigit(), state=None)
+async def get_product_id_to_delete(message: types.Message, state:FSMContext):
+    async with state.proxy() as date:
+        date['name']=message.text
+    data = await state.get_data()
+    deleted_name = data.get("name")
+    sqlite_db.sql_delete_product(deleted_name)
+    await message.reply(f"Product with name <<{deleted_name}>> has been deleted.")
+    await state.finish()
 
 # @dp.message_handler(commands="Download", state=None)
 async def cm_start(message:types.Message):
@@ -75,10 +94,14 @@ async def cancel_handler(message: types.Message, state: FSMContext):
 
 def register_handlers_client(dp : Dispatcher):
 
+    dp.register_message_handler(delete_product, commands=['Delete'])
+    dp.register_message_handler(get_product_id_to_delete, state=DeleteState.name)
+
     dp.register_message_handler(cancel_handler, commands=['Cancel'], state='*')
     dp.register_message_handler(cancel_handler, Text(equals='Cancel', ignore_case=True), state='*')
     dp.register_message_handler(is_admin, commands=['Dashboard'], state='*')
     dp.register_message_handler(cm_start, commands=['download'], state=None)
+    # dp.register_message_handler(delete_start, commands=['delete'], state=None)
     dp.register_message_handler(load_photo, content_types=['photo'], state=FSMAdmin.photo)
     dp.register_message_handler(load_name, state=FSMAdmin.name)
     dp.register_message_handler(load_description, state=FSMAdmin.description)
