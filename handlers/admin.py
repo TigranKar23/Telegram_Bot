@@ -1,18 +1,25 @@
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from create_bot import dp, bot
-from aiogram import types, Dispatcher
+from aiogram import types, Dispatcher, executor
 from aiogram.dispatcher.filters import Text
 from data_base import sqlite_db
 from keyboards import admin_kb
 import openai
+from parser import parser
+import logging
+import aiohttp
+import requests
 #im@
-# openai.api_key = "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"
-
+openai.api_key = "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"
+FACEBOOK_TOKEN = 'EAAEZAwt7E4QUBOZChvJVYHrRbZC2iOsqCBn2K8q99HBNs8EVZCDvPjwynphw5hV1ZAoU0W5cLQTOvZCOLdC12o1p6NWZBDETYNZC3XiFMZBaxL2JbG6xnXjbjDozZC9tHVWMTd8dRPNohbheKbRQxoEgoFYwykMcaEFyKYD8HVovTfw2ZCQ8i90rmaNNKEOp6otzEONknlg8vhjbQ2E5JpJckh8gTv1c0CKTKzZCm0OpZA3IIPX1hFQCDGyrL4gjs4OrT5XsZD'
+# GROUP_ID = '114978245764679'
+GROUP_ID = '4020611574659567'
 #hovoin@
-openai.api_key = "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"
+# openai.api_key = "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"
 
 ID = None
+logging.basicConfig(level=logging.INFO)
 
 class FSMAdmin(StatesGroup):
     photo = State()
@@ -32,6 +39,50 @@ class SearchState(StatesGroup):
 #     ID=message.from_user.id
 #     await bot.send_message(message.from_user.id,'You are Admin')
 #     await message.delete()
+
+def split_message(text, length=4096):
+    return [text[i:i+length] for i in range(0, len(text), length)]
+
+# @dp.message_handler(commands=['get'])
+async def get_khl_data(message: types.Message):
+    data = parser.parser()
+    for player_info in data:
+        player_text = "\n".join([f"{key}: {value}" for key, value in player_info.items()])
+        await message.reply(player_text)
+
+# ------------------------------FACEBOOK-------------------------------------
+
+# @dp.message_handler(commands=['facebook'])
+async def facebook_data(message: types.Message):
+    data = await get_facebook_data()
+    await message.answer(f"Facebook Data: {data}")
+
+async def get_facebook_data():
+    # url = f"https://graph.facebook.com/v13.0/me?fields=id,name&access_token={FACEBOOK_TOKEN}"
+    # async with aiohttp.ClientSession() as session:
+    #     async with session.get(url) as response:
+    #         return await response.json()
+    # url = f"https://graph.facebook.com/me?fields=id,name,email&access_token={FACEBOOK_TOKEN}"
+
+    # url = f"https://graph.facebook.com/{GROUP_ID}/feed?access_token={FACEBOOK_TOKEN}"
+
+    # Выполнение запроса
+    # response = requests.get(url)
+    
+    # Проверка успешности запроса
+    # if response.status_code == 200:
+    #     return response.json()
+    # else:
+    #     return f"Ошибка запроса: {response.status_code}"
+
+    url = f"https://graph.facebook.com/{GROUP_ID}/feed?access_token={FACEBOOK_TOKEN}"
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            return await resp.json()
+        
+# ------------------------------FACEBOOK-------------------------------------
+
+
 
 # @dp.message_handler(commands="Delete", is_chat_admin=True)
 async def delete_product(message: types.Message):
@@ -82,13 +133,17 @@ async def search_request(message: types.Message, state:FSMContext):
         response = openai.Completion.create(engine="davinci", prompt=search_data, max_tokens=150)
         text = beautify_text(response.choices[0].text.strip())
         await message.reply(text)
+        await state.finish()
+
     except openai.error.RateLimitError:
         await message.reply("Sorry, I've exceeded my API rate limit. Please try again later.")
+        await state.finish()
+
 
     # -------------------------------------------------------
-    await message.reply(response.choices[0].text.strip())
+    # await message.reply(response.choices[0].text.strip())
     # await message.reply(search_data)
-    await state.finish()
+    # await state.finish()
 
 #-----------------------------------------------------------
 
@@ -165,4 +220,6 @@ def register_handlers_client(dp : Dispatcher):
     dp.register_message_handler(load_name, state=FSMAdmin.name)
     dp.register_message_handler(load_description, state=FSMAdmin.description)
     dp.register_message_handler(load_price, state=FSMAdmin.price)
-    
+    # --------------------parser--------------------
+    dp.register_message_handler(get_khl_data, commands=['get'], state=None)
+    dp.register_message_handler(facebook_data, commands=['facebook'], state=None)
